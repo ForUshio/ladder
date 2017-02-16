@@ -71,7 +71,7 @@ class User
       self.all.each do |db_user|
         find = false
         dingtalk_results.each_index do |index|
-          if db_user.dingtalk_id == dingtalk_results[index].userid
+          if db_user.dingtalk_id == dingtalk_results[index]['userid']
             db_user.valid_in_dingtalk = true
             db_user.save
             dingtalk_results.delete_at(index)
@@ -87,7 +87,7 @@ class User
 
       # 将新增的用户插入数据库
       dingtalk_results.each do |dingtalk_user|
-        user = User.new(dingtalk_user.name, dingtalk_user.userid)
+        user = User.new(dingtalk_user['name'], dingtalk_user['userid'])
         user.save
       end
     end
@@ -174,13 +174,14 @@ class User
     current_month_record = query_score_record(year, month)
     prev_month = Timeable::prev_month(year, month)
     prev_month_record = query_score_record(prev_month[:year], prev_month[:month])
-    if !current_month_record.nil? && !prev_month_record.nil? &&
-      current_month_record.updated_at > grade.updated_at &&
+    if !current_month_record.nil? && current_month_record.updated_at > grade.updated_at
+      if prev_month_record.nil? || # prev_month_record 这个为nil说明上个月的记录不存在，视作不用更新，因此是"或"的关系
           current_month_record.updated_at > prev_month_record.updated_at
-      # 无需更新的
-      result[:score] = current_month_record.score
-      result[:base_score] = current_month_record.base_score
-      return result
+        # 无需更新的
+        result[:score] = current_month_record.score
+        result[:base_score] = current_month_record.base_score
+        return result
+      end
     end
 
     # 走到这里说明当月的得分需要重新计算
